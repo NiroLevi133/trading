@@ -3,6 +3,11 @@
     {
       "path": "/api/cron",
       "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/headline-scan",
+      "schedule": "*/2 7-21 * * 0-5"
     }
   ]
 }
+
