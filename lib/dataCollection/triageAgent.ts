@@ -11,6 +11,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import OpenAI from 'openai';
+import { logAgentCost } from './costLogger';
 import { TriggerType } from './routerAgent';
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -196,6 +197,7 @@ export async function runTriageAgent(
   const outputTokens = response.usage?.completion_tokens ?? 0;
   // GPT-4o-mini: $0.15/1M input, $0.60/1M output
   const costUsd = (inputTokens * 0.15 + outputTokens * 0.60) / 1_000_000;
+  logAgentCost('triage', 'gpt-4o-mini', inputTokens, outputTokens, costUsd).catch(() => {});
 
   // Parse response
   let urgencyScore = 0;

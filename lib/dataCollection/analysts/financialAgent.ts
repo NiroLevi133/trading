@@ -7,6 +7,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { CollectedItem } from '../rssCollector';
 import { trackUsage } from '@/lib/pricing';
+import { logAgentCost } from '../costLogger';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -103,6 +104,7 @@ export async function runFinancialAgent(items: CollectedItem[], memoryContext = 
 
   // Sonnet pricing: $3/1M input, $15/1M output
   const costUsd = (inputTokens * 3 + outputTokens * 15) / 1_000_000;
+  logAgentCost('financial', 'claude-sonnet-4-6', inputTokens, outputTokens, costUsd).catch(() => {});
 
   const text = message.content[0].type === 'text' ? message.content[0].text : '{}';
   const parsed = parseFinancialResponse(text);

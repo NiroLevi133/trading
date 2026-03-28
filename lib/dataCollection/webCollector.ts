@@ -9,6 +9,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { DataSource, SourceCategory } from './sources';
 import { CollectedItem } from './rssCollector';
+import { logAgentCost } from './costLogger';
 
 const gemini = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
@@ -139,6 +140,13 @@ async function fetchCategoryBatch(
     });
 
     const text: string = result.response.text();
+    const meta = result.response.usageMetadata;
+    if (meta) {
+      const inTok = meta.promptTokenCount ?? 0;
+      const outTok = meta.candidatesTokenCount ?? 0;
+      const costUsd = (inTok * 0.075 + outTok * 0.30) / 1_000_000;
+      logAgentCost('web_search', 'gemini-2.5-flash-lite', inTok, outTok, costUsd).catch(() => {});
+    }
     return parseGeminiResponse(text, category, webSources);
   } catch {
     return [];

@@ -7,6 +7,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { CollectedItem } from '../rssCollector';
 import { trackUsage } from '@/lib/pricing';
+import { logAgentCost } from '../costLogger';
 
 const gemini = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
@@ -117,6 +118,7 @@ export async function runMacroAgent(items: CollectedItem[], memoryContext = ''):
 
   // Gemini Flash Lite pricing: $0.075/1M input, $0.30/1M output
   const costUsd = (inputTokens * 0.075 + outputTokens * 0.30) / 1_000_000;
+  logAgentCost('macro', 'gemini-2.5-flash-lite', inputTokens, outputTokens, costUsd).catch(() => {});
 
   const text = result.response.text();
   const parsed = parseMacroResponse(text);

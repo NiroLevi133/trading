@@ -37,6 +37,7 @@ import {
   recordCorrelation,
   resolveMaturedCorrelations,
 } from './correlationEngine';
+import { initCostLogDb } from './costLogger';
 
 export interface OrchestratorResult {
   runId: number;
@@ -82,6 +83,7 @@ export async function runDataCollectionPipeline(
     initDataCollectionDb(),
     initMemoryDb(),
     initCorrelationDb(),
+    initCostLogDb(),
   ]);
 
   // Step 1: Router decides the plan

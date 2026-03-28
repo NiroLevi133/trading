@@ -12,6 +12,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import Anthropic from '@anthropic-ai/sdk';
+import { logAgentCost } from './costLogger';
 import { SourceCategory } from './sources';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -170,6 +171,12 @@ async function detectTriggerWithAI(context: RouterContext): Promise<{ trigger: T
       content: `שעה נוכחית: ${nowHe}\n\n${signalSummary}\n\nאיזה טריגר הכי רלוונטי עכשיו?`,
     }],
   });
+
+  // Log router cost
+  const inTok = message.usage.input_tokens;
+  const outTok = message.usage.output_tokens;
+  const costUsd = (inTok * 0.80 + outTok * 4.00) / 1_000_000;
+  logAgentCost('router', 'claude-haiku-4-5', inTok, outTok, costUsd).catch(() => {});
 
   try {
     const text = message.content[0].type === 'text' ? message.content[0].text : '{}';

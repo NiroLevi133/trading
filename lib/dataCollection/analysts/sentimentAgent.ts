@@ -7,6 +7,7 @@
 import OpenAI from 'openai';
 import { CollectedItem } from '../rssCollector';
 import { trackUsage } from '@/lib/pricing';
+import { logAgentCost } from '../costLogger';
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -117,6 +118,7 @@ export async function runSentimentAgent(items: CollectedItem[], memoryContext = 
 
   // GPT-4o-mini pricing: $0.15/1M input, $0.60/1M output
   const costUsd = (inputTokens * 0.15 + outputTokens * 0.60) / 1_000_000;
+  logAgentCost('sentiment', 'gpt-4o-mini', inputTokens, outputTokens, costUsd).catch(() => {});
 
   const text = response.choices[0].message.content ?? '{}';
   const parsed = parseSentimentResponse(text);
