@@ -29,8 +29,8 @@ async function fetchYahoo(symbol: string): Promise<MarketSnapshot> {
   const closes: number[] = quotes.close.filter(Boolean);
 
   const price = meta.regularMarketPrice;
-  const prevClose = meta.previousClose ?? meta.chartPreviousClose;
-  const changePercent = prevClose ? ((price - prevClose) / prevClose) * 100 : 0;
+  const changePercent = meta.regularMarketChangePercent
+    ?? (meta.regularMarketChange != null ? (meta.regularMarketChange / (price - meta.regularMarketChange)) * 100 : 0);
 
   const name = SYMBOLS[symbol as keyof typeof SYMBOLS]?.name
     ?? meta.shortName

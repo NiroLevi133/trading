@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { FullAnalysis, AssetAnalysis, AgentCounts, Signal, PriceTarget } from '@/lib/types';
+import { FullAnalysis, AssetAnalysis, AgentCounts, Signal, PriceTarget, DataSummary, GroupResult } from '@/lib/types';
 
 // ── Signal helpers ────────────────────────────────────────────────────────────
 
@@ -590,26 +590,178 @@ function Stepper({ label, value, min, max, onChange }: {
 
 // ── Symbol Scanner ────────────────────────────────────────────────────────────
 
+function ScannedStockCard({ stock, onClose }: { stock: AssetAnalysis; onClose: () => void }) {
+  const [expanded, setExpanded] = useState(false);
+  const price = stock.marketData.price;
+  const change = stock.marketData.changePercent;
+  const fmt = (n: number) =>
+    n >= 1000
+      ? `$${n.toLocaleString(undefined, { maximumFractionDigits: 0 })}`
+      : `$${n.toFixed(2)}`;
+
+  const groupNameHe: Record<string, string> = {
+    'trend-following': 'מגמה',
+    'momentum': 'מומנטום',
+    'sentiment': 'סנטימנט',
+  };
+
+  return (
+    <div style={{
+      background: '#12121a',
+      border: `1px solid ${signalBorder(stock.signal)}`,
+      borderRadius: 14, marginTop: 12, overflow: 'hidden',
+    }}>
+      {/* Header */}
+      <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+            <span style={{
+              fontSize: 14, fontWeight: 800,
+              color: signalColor(stock.signal),
+              background: signalBg(stock.signal),
+              border: `1px solid ${signalBorder(stock.signal)}`,
+              borderRadius: 8, padding: '3px 10px',
+            }}>
+              {signalHe(stock.signal)} · {stock.confidence}%
+            </span>
+            <span style={{ fontSize: 11, color: '#64748b' }}>
+              יעד: <span style={{ color: '#22c55e' }}>{fmt(stock.priceTarget.high)}</span>
+              {' / '}
+              <span style={{ color: '#ef4444' }}>{fmt(stock.priceTarget.low)}</span>
+            </span>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: 18, fontWeight: 800, color: '#e2e8f0' }}>{stock.symbol}</div>
+            <div style={{ fontSize: 11, color: '#64748b' }}>{stock.name}</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#e2e8f0' }}>{fmt(price)}</div>
+            <div style={{ fontSize: 12, color: change >= 0 ? '#22c55e' : '#ef4444' }}>
+              {change >= 0 ? '+' : ''}{change.toFixed(2)}%
+            </div>
+          </div>
+        </div>
+
+        {/* Recommendation */}
+        <div style={{
+          fontSize: 13, color: '#cbd5e1', lineHeight: 1.8,
+          textAlign: 'right', background: 'rgba(255,255,255,0.03)',
+          border: '1px solid #1e1e2e', borderRadius: 10, padding: 12,
+        }}>
+          {stock.recommendation}
+        </div>
+
+        {/* Actions */}
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            onClick={() => setExpanded(v => !v)}
+            style={{
+              flex: 1, background: 'rgba(99,102,241,0.12)',
+              border: '1px solid rgba(99,102,241,0.3)',
+              borderRadius: 8, padding: '7px 0',
+              color: '#818cf8', fontSize: 12, cursor: 'pointer',
+            }}
+          >
+            {expanded ? '▲ סגור פרטים' : '▼ פרטים מלאים'}
+          </button>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'transparent', border: '1px solid #1e1e2e',
+              borderRadius: 8, padding: '7px 12px',
+              color: '#374151', fontSize: 12, cursor: 'pointer',
+            }}
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+
+      {/* Expanded */}
+      {expanded && (
+        <div style={{ borderTop: '1px solid #1e1e2e', padding: '0 16px 16px' }}>
+          {/* Data summaries */}
+          {stock.dataSummary && (
+            <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#818cf8' }}>סיכום נתונים</div>
+              {([
+                { icon: '🔍', label: 'מה קורה עם המנייה', text: stock.dataSummary.priceMovement },
+                { icon: '🧠', label: 'מה חושבים המשקיעים', text: stock.dataSummary.indicators },
+                { icon: '⚡', label: 'אותות חשובים', text: stock.dataSummary.volumeSpeed },
+              ] as { icon: string; label: string; text: string }[]).filter(s => s.text).map(({ icon, label, text }) => (
+                <div key={label} style={{
+                  background: 'rgba(255,255,255,0.03)', border: '1px solid #1e1e2e',
+                  borderRadius: 10, padding: 12,
+                }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: '#818cf8', marginBottom: 6 }}>
+                    {icon} {label}
+                  </div>
+                  <div style={{
+                    fontSize: 13, color: '#cbd5e1', lineHeight: 1.8,
+                    textAlign: 'right', whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                  }}>
+                    {text}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Groups */}
+          {stock.groups?.length > 0 && (
+            <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#818cf8' }}>קבוצות ניתוח</div>
+              {stock.groups.map((g: GroupResult) => (
+                <div key={g.name} style={{
+                  background: 'rgba(255,255,255,0.03)', border: '1px solid #1e1e2e',
+                  borderRadius: 10, padding: 12,
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: '#e2e8f0' }}>
+                      {groupNameHe[g.name] ?? g.name}
+                    </span>
+                    <span style={{
+                      fontSize: 11, fontWeight: 700, color: signalColor(g.signal),
+                      background: signalBg(g.signal), border: `1px solid ${signalBorder(g.signal)}`,
+                      borderRadius: 6, padding: '2px 8px',
+                    }}>
+                      {signalHe(g.signal)} · {g.confidence}%
+                    </span>
+                  </div>
+                  <div style={{
+                    fontSize: 12, color: '#94a3b8', lineHeight: 1.7,
+                    textAlign: 'right', whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                  }}>
+                    {g.summary}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SymbolScanner() {
   const [symbol, setSymbol] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [done, setDone] = useState('');
+  const [result, setResult] = useState<AssetAnalysis | null>(null);
 
   const scan = async () => {
     const s = symbol.trim().toUpperCase();
     if (!s) return;
     setLoading(true);
     setError('');
-    setDone('');
+    setResult(null);
     try {
       const res = await fetch(`/api/stock?symbol=${encodeURIComponent(s)}`);
       if (!res.ok) {
         const json = await res.json().catch(() => ({}));
         throw new Error(json.details ?? json.error ?? 'שגיאה בניתוח');
       }
-      const json = await res.json();
-      setDone(`${json.name} (${json.symbol}) — ${json.signal}`);
+      const json: AssetAnalysis = await res.json();
+      setResult(json);
       setSymbol('');
     } catch (e) {
       setError(String(e));
@@ -619,48 +771,54 @@ function SymbolScanner() {
   };
 
   return (
-    <div style={{
-      background: '#12121a', border: '1px solid #1e1e2e',
-      borderRadius: 12, padding: 14, marginBottom: 16,
-    }}>
-      <div style={{ fontSize: 12, color: '#64748b', marginBottom: 10 }}>🔎 סריקת מנייה חופשית</div>
-      <div style={{ display: 'flex', gap: 8 }}>
-        <input
-          value={symbol}
-          onChange={e => setSymbol(e.target.value.toUpperCase())}
-          onKeyDown={e => e.key === 'Enter' && !loading && scan()}
-          placeholder="TSLA, NVDA, AMZN..."
-          disabled={loading}
-          style={{
-            flex: 1, background: '#0a0a0f', border: '1px solid #1e1e2e',
-            borderRadius: 8, padding: '9px 12px',
-            color: '#e2e8f0', fontSize: 14, outline: 'none',
-            fontFamily: 'monospace',
-          }}
-        />
-        <button
-          onClick={scan}
-          disabled={loading || !symbol.trim()}
-          style={{
-            background: loading ? '#1e1e2e' : 'rgba(99,102,241,0.15)',
-            border: '1px solid rgba(99,102,241,0.4)',
-            borderRadius: 8, padding: '9px 16px',
-            color: loading ? '#374151' : '#818cf8',
-            fontSize: 13, fontWeight: 600,
-            cursor: loading || !symbol.trim() ? 'not-allowed' : 'pointer',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {loading ? 'סורק...' : 'סרוק'}
-        </button>
-      </div>
-      {error && (
-        <div style={{ fontSize: 12, color: '#ef4444', marginTop: 8 }}>{error}</div>
-      )}
-      {done && !error && (
-        <div style={{ fontSize: 12, color: '#22c55e', marginTop: 8 }}>
-          ✓ נשמר: {done} — <a href="/stocks" style={{ color: '#818cf8', textDecoration: 'underline' }}>ראה בדף מניות</a>
+    <div style={{ marginBottom: 16 }}>
+      <div style={{
+        background: '#12121a', border: '1px solid #1e1e2e',
+        borderRadius: 12, padding: 14,
+      }}>
+        <div style={{ fontSize: 12, color: '#64748b', marginBottom: 10 }}>🔎 סריקת מנייה חופשית</div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <input
+            value={symbol}
+            onChange={e => setSymbol(e.target.value.toUpperCase())}
+            onKeyDown={e => e.key === 'Enter' && !loading && scan()}
+            placeholder="TSLA, NVDA, AMZN..."
+            disabled={loading}
+            style={{
+              flex: 1, background: '#0a0a0f', border: '1px solid #1e1e2e',
+              borderRadius: 8, padding: '9px 12px',
+              color: '#e2e8f0', fontSize: 14, outline: 'none',
+              fontFamily: 'monospace',
+            }}
+          />
+          <button
+            onClick={scan}
+            disabled={loading || !symbol.trim()}
+            style={{
+              background: loading ? '#1e1e2e' : 'rgba(99,102,241,0.15)',
+              border: '1px solid rgba(99,102,241,0.4)',
+              borderRadius: 8, padding: '9px 16px',
+              color: loading ? '#374151' : '#818cf8',
+              fontSize: 13, fontWeight: 600,
+              cursor: loading || !symbol.trim() ? 'not-allowed' : 'pointer',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {loading ? 'סורק...' : 'סרוק'}
+          </button>
         </div>
+        {error && (
+          <div style={{ fontSize: 12, color: '#ef4444', marginTop: 8 }}>{error}</div>
+        )}
+        {loading && (
+          <div style={{ fontSize: 12, color: '#818cf8', marginTop: 8 }}>
+            מנתח עם {9} סוכני AI... (~30 שניות)
+          </div>
+        )}
+      </div>
+
+      {result && (
+        <ScannedStockCard stock={result} onClose={() => setResult(null)} />
       )}
     </div>
   );
