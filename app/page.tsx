@@ -428,6 +428,82 @@ interface NewsData {
   isFallback?: boolean;
 }
 
+function AskAgent() {
+  const [question, setQuestion] = useState('');
+  const [answer, setAnswer] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const ask = async () => {
+    const q = question.trim();
+    if (!q) return;
+    setLoading(true);
+    setError('');
+    setAnswer('');
+    try {
+      const res = await fetch('/api/ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: q }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? 'שגיאה');
+      setAnswer(json.answer);
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={{ marginTop: 12, borderTop: '1px solid #1e1e2e', paddingTop: 12 }}>
+      <div style={{ fontSize: 11, color: '#64748b', marginBottom: 8 }}>💬 שאל את הסוכן</div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <input
+          value={question}
+          onChange={e => setQuestion(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && !loading && ask()}
+          placeholder="מה השפעת המלחמה על הדולר?"
+          disabled={loading}
+          style={{
+            flex: 1, background: '#0a0a0f', border: '1px solid #1e1e2e',
+            borderRadius: 8, padding: '8px 10px',
+            color: '#e2e8f0', fontSize: 13, outline: 'none',
+          }}
+        />
+        <button
+          onClick={ask}
+          disabled={loading || !question.trim()}
+          style={{
+            background: loading ? '#1e1e2e' : 'rgba(99,102,241,0.15)',
+            border: '1px solid rgba(99,102,241,0.3)',
+            borderRadius: 8, padding: '8px 12px',
+            color: loading ? '#374151' : '#818cf8',
+            fontSize: 12, fontWeight: 600,
+            cursor: loading || !question.trim() ? 'not-allowed' : 'pointer',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {loading ? '...' : 'שאל'}
+        </button>
+      </div>
+      {error && <div style={{ fontSize: 12, color: '#ef4444', marginTop: 8 }}>{error}</div>}
+      {answer && (
+        <div style={{
+          marginTop: 10, fontSize: 13, color: '#cbd5e1',
+          lineHeight: 1.8, textAlign: 'right',
+          background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)',
+          borderRadius: 10, padding: 12,
+          whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+        }}>
+          {answer}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function NewsSection() {
   const [news, setNews] = useState<NewsData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -539,6 +615,8 @@ function NewsSection() {
               {news.isFallback ? 'נתוני גיבוי' : `עודכן: ${news.updatedAt}`}
             </span>
           </div>
+
+          <AskAgent />
         </div>
       )}
     </div>
