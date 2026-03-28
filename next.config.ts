@@ -1,7 +1,7 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  serverExternalPackages: ['@anthropic-ai/sdk', 'openai', '@google/generative-ai'],
 };
 
 export default nextConfig;
