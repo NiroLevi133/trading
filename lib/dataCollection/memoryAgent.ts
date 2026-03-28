@@ -117,13 +117,13 @@ export async function querySimilarMemories(
       [trigger, keywords, limit]
     );
     return result.rows.map((r: Record<string, unknown>) => ({
-      id: r.id,
-      trigger: r.trigger,
-      reason: r.reason,
-      keywords: r.keywords ?? [],
-      summary: r.summary,
-      outcome: r.outcome_json ?? undefined,
-      createdAt: r.created_at,
+      id: r.id as number,
+      trigger: r.trigger as TriggerType,
+      reason: r.reason as string,
+      keywords: (r.keywords ?? []) as string[],
+      summary: r.summary as string,
+      outcome: (r.outcome_json ?? undefined) as MarketOutcome | undefined,
+      createdAt: r.created_at as string,
     }));
   } finally {
     client.release();
@@ -138,13 +138,13 @@ export async function getRecentMemories(limit = 20): Promise<MemoryEvent[]> {
       [limit]
     );
     return result.rows.map((r: Record<string, unknown>) => ({
-      id: r.id,
-      trigger: r.trigger,
-      reason: r.reason,
-      keywords: r.keywords ?? [],
-      summary: r.summary,
-      outcome: r.outcome_json ?? undefined,
-      createdAt: r.created_at,
+      id: r.id as number,
+      trigger: r.trigger as TriggerType,
+      reason: r.reason as string,
+      keywords: (r.keywords ?? []) as string[],
+      summary: r.summary as string,
+      outcome: (r.outcome_json ?? undefined) as MarketOutcome | undefined,
+      createdAt: r.created_at as string,
     }));
   } finally {
     client.release();

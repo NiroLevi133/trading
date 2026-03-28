@@ -8,7 +8,8 @@
       "WebSearch",
       "Bash(npx tsc:*)",
       "Bash(npm install:*)",
-      "Bash(node -e \":*)"
+      "Bash(node -e \":*)",
+      "Bash(grep -n \"CorrelationRecord\\\\|TriggerType\\\\|MemoryEvent\" lib/dataCollection/*.ts)"
     ]
   }
 }

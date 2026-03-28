@@ -218,16 +218,16 @@ export async function getRecentCorrelations(limit = 20): Promise<CorrelationReco
       [limit]
     );
     return result.rows.map((r: Record<string, unknown>) => ({
-      id: r.id,
-      runId: r.run_id,
-      trigger: r.trigger,
-      reason: r.reason,
-      snapshotBefore: r.snapshot_before,
-      snapshotAfter: r.snapshot_after ?? undefined,
-      deltaPercent: r.delta_percent ?? undefined,
-      resolveAfterHours: r.resolve_after_hours,
-      resolvedAt: r.resolved_at ?? undefined,
-      createdAt: r.created_at,
+      id: r.id as number,
+      runId: r.run_id as number,
+      trigger: r.trigger as TriggerType,
+      reason: r.reason as string,
+      snapshotBefore: r.snapshot_before as PriceSnapshot,
+      snapshotAfter: (r.snapshot_after ?? undefined) as PriceSnapshot | undefined,
+      deltaPercent: (r.delta_percent ?? undefined) as Partial<Record<keyof PriceSnapshot, number>> | undefined,
+      resolveAfterHours: r.resolve_after_hours as number,
+      resolvedAt: (r.resolved_at ?? undefined) as string | undefined,
+      createdAt: r.created_at as string,
     }));
   } finally {
     client.release();
