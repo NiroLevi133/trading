@@ -6,8 +6,7 @@
     },
     {
       "path": "/api/headline-scan",
-      "schedule": "*/2 7-21 * * 0-5"
+      "schedule": "0 10 * * *"
     }
   ]
 }
-
