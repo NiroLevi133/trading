@@ -25,7 +25,7 @@ export interface SentimentAnalysis {
   costUsd: number;
 }
 
-function buildSentimentPrompt(items: CollectedItem[]): string {
+function buildSentimentPrompt(items: CollectedItem[], memoryContext = ''): string {
   const today = new Date().toLocaleDateString('he-IL');
 
   const relevant = items
@@ -41,6 +41,7 @@ function buildSentimentPrompt(items: CollectedItem[]): string {
     arr.map(i => `• ${i.sourceName}: ${i.title}`).join('\n');
 
   return `נתח את הסנטימנט של שוק ההון בהתבסס על כותרות ומידע מהיום ${today}.
+${memoryContext}
 
 🇮🇱 חדשות ישראל (${israelItems.length} פריטים):
 ${format(israelItems) || 'אין מידע'}
@@ -92,8 +93,8 @@ function parseSentimentResponse(text: string): Partial<SentimentAnalysis> {
   }
 }
 
-export async function runSentimentAgent(items: CollectedItem[]): Promise<SentimentAnalysis> {
-  const prompt = buildSentimentPrompt(items);
+export async function runSentimentAgent(items: CollectedItem[], memoryContext = ''): Promise<SentimentAnalysis> {
+  const prompt = buildSentimentPrompt(items, memoryContext);
 
   const response = await openai.chat.completions.create({
     model: 'gpt-4o-mini',

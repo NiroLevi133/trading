@@ -38,7 +38,7 @@ export interface MacroAnalysis {
   costUsd: number;
 }
 
-function buildMacroPrompt(items: CollectedItem[]): string {
+function buildMacroPrompt(items: CollectedItem[], memoryContext = ''): string {
   const today = new Date().toLocaleDateString('he-IL');
 
   const relevant = items
@@ -54,6 +54,7 @@ function buildMacroPrompt(items: CollectedItem[]): string {
     arr.slice(0, 15).map(i => `• [${i.sourceName}] ${i.title}: ${i.content.slice(0, 150)}`).join('\n');
 
   return `You are a senior macro analyst assessing global risks for ${today}.
+${memoryContext}
 
 GEOPOLITICAL EVENTS (${geopolitical.length} items):
 ${format(geopolitical) || 'No data'}
@@ -105,11 +106,9 @@ function parseMacroResponse(text: string): Partial<MacroAnalysis> {
   }
 }
 
-export async function runMacroAgent(items: CollectedItem[]): Promise<MacroAnalysis> {
-  const prompt = buildMacroPrompt(items);
+export async function runMacroAgent(items: CollectedItem[], memoryContext = ''): Promise<MacroAnalysis> {
   const model = gemini.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
-
-  const result = await model.generateContent(prompt);
+  const result = await model.generateContent(buildMacroPrompt(items, memoryContext));
   const meta = result.response.usageMetadata;
 
   const inputTokens = meta?.promptTokenCount ?? 0;

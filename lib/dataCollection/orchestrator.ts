@@ -2,8 +2,10 @@
 // Orchestrator — main pipeline:
 //   1. Router Agent → decides what to collect
 //   2. RSS Collector + Web Collector → gather data from sources
-//   3. 3 Analyst Agents (parallel) → analyze by domain
-//   4. Save everything to DB
+//   3. Memory Agent → adds historical context to analysts
+//   4. 3 Analyst Agents (parallel) → analyze by domain
+//   5. Correlation Engine → records signal for outcome tracking
+//   6. Save everything to DB
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { DATA_SOURCES } from './sources';
@@ -23,6 +25,18 @@ import {
   saveAnalysisResult,
   getLatestCollectionRun,
 } from './db';
+import {
+  initMemoryDb,
+  saveMemoryEvent,
+  querySimilarMemories,
+  extractKeywords,
+  buildMemoryContext,
+} from './memoryAgent';
+import {
+  initCorrelationDb,
+  recordCorrelation,
+  resolveMaturedCorrelations,
+} from './correlationEngine';
 
 export interface OrchestratorResult {
   runId: number;
@@ -63,8 +77,12 @@ export async function runDataCollectionPipeline(
 ): Promise<OrchestratorResult> {
   const startTime = Date.now();
 
-  // Ensure DB tables exist
-  await initDataCollectionDb();
+  // Ensure DB tables exist (all modules)
+  await Promise.all([
+    initDataCollectionDb(),
+    initMemoryDb(),
+    initCorrelationDb(),
+  ]);
 
   // Step 1: Router decides the plan
   const plan = await runRouter(context);
@@ -102,11 +120,18 @@ export async function runDataCollectionPipeline(
     // Save raw items to DB
     await saveCollectedItems(runId, allItems);
 
+    // Step 2.5: Memory — שלוף זיכרונות דומים מהעבר כהקשר לאנליסטים
+    const headlines = allItems.map(i => i.title);
+    const keywords  = extractKeywords(headlines);
+    const pastMemories = await querySimilarMemories(plan.trigger, keywords, 5).catch(() => []);
+    const memoryContext = buildMemoryContext(pastMemories);
+    if (memoryContext) console.log(`[Orchestrator] Memory context: ${pastMemories.length} past events`);
+
     // Step 3: Run analyst agents in parallel (only the ones the router selected)
     const analystMap = {
-      financial: () => runFinancialAgent(filterForFinancial(allItems, plan)),
-      sentiment: () => runSentimentAgent(filterForSentiment(allItems, plan)),
-      macro:     () => runMacroAgent(filterForMacro(allItems, plan)),
+      financial: () => runFinancialAgent(filterForFinancial(allItems, plan), memoryContext),
+      sentiment: () => runSentimentAgent(filterForSentiment(allItems, plan), memoryContext),
+      macro:     () => runMacroAgent(filterForMacro(allItems, plan), memoryContext),
     };
 
     const analysesToRun = plan.analysts;
@@ -159,6 +184,20 @@ export async function runDataCollectionPipeline(
       sourcesSucceeded: totalSucceeded,
       itemsCollected: allItems.length,
     });
+
+    // Step 4: שמור אירוע בזיכרון + הפעל correlation tracking
+    await Promise.allSettled([
+      saveMemoryEvent({
+        trigger: plan.trigger,
+        reason: plan.reason,
+        keywords,
+        summary: analyses.financial?.summary ?? analyses.sentiment?.summary ?? plan.reason,
+        correlationRunId: runId,
+      }),
+      recordCorrelation(runId, plan.trigger, plan.reason, 2),
+      // נסה לסגור correlations ישנות שהגיע זמנן
+      resolveMaturedCorrelations(),
+    ]);
 
     const durationMs = Date.now() - startTime;
     console.log(`[Orchestrator] Done in ${durationMs}ms. Total cost: $${totalCostUsd.toFixed(5)}`);

@@ -30,7 +30,7 @@ export interface FinancialAnalysis {
   costUsd: number;
 }
 
-function buildFinancialPrompt(items: CollectedItem[]): string {
+function buildFinancialPrompt(items: CollectedItem[], memoryContext = ''): string {
   const today = new Date().toLocaleDateString('he-IL');
 
   // Prioritize high-value items
@@ -43,7 +43,7 @@ function buildFinancialPrompt(items: CollectedItem[]): string {
     .join('\n\n---\n\n');
 
   return `אתה אנליסט פיננסי בכיר שמנתח חדשות שוק ההון להיום ${today}.
-
+${memoryContext}
 להלן ${relevant.length} פריטי מידע שנאספו ממקורות פיננסיים:
 
 ${formatted}
@@ -84,8 +84,8 @@ function parseFinancialResponse(text: string): Partial<FinancialAnalysis> {
   }
 }
 
-export async function runFinancialAgent(items: CollectedItem[]): Promise<FinancialAnalysis> {
-  const prompt = buildFinancialPrompt(items);
+export async function runFinancialAgent(items: CollectedItem[], memoryContext = ''): Promise<FinancialAnalysis> {
+  const prompt = buildFinancialPrompt(items, memoryContext);
 
   const message = await anthropic.messages.create({
     model: 'claude-sonnet-4-6',
