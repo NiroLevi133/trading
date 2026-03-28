@@ -59,10 +59,23 @@ export interface AssetAnalysis {
   analyzedAt: string;
 }
 
+export interface TokenUsage {
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  costUsd: number;
+}
+
+export interface AnalysisCost {
+  totalUsd: number;
+  breakdown: TokenUsage[];
+}
+
 export interface FullAnalysis {
   aapl: AssetAnalysis;
   sp500: AssetAnalysis;
   nasdaq: AssetAnalysis;
   btc: AssetAnalysis;
   analyzedAt: string;
+  cost?: AnalysisCost;
 }

@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find C:UsersNirLeviDesktoptrading-analyzer/app -type f \\\\\\(-name *.tsx -o -name *.ts -o -name *.json \\\\\\))",
+      "Bash(find C:UsersNirLeviDesktoptrading-analyzer/lib -type f \\\\\\(-name *.tsx -o -name *.ts \\\\\\))",
+      "Bash(curl -s \"https://news.google.com/rss/search?q=Israel+Iran+USA+military+2026&hl=en-US&gl=US&ceid=US:en\")",
+      "Bash(curl -s \"https://news.google.com/rss/search?q=iran+israel+nuclear+attack+march+2026&hl=en-US&gl=US&ceid=US:en\")",
+      "WebSearch",
+      "Bash(npx tsc:*)",
+      "Bash(npm install:*)",
+      "Bash(node -e \":*)"
+    ]
+  }
+}

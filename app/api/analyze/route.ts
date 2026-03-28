@@ -3,7 +3,8 @@ import { fetchAllMarkets } from '@/lib/data/market';
 import { runDataSummary, runTrendFollowing, runMomentum, runSentiment } from '@/lib/agents/groups';
 import { groupVote } from '@/lib/voting';
 import { buildConsensus } from '@/lib/consensus';
-import { saveAnalysis } from '@/lib/store';  // now async
+import { saveAnalysis } from '@/lib/store';
+import { resetCostAccumulator, getAccumulatedCost } from '@/lib/pricing';
 import { AgentCounts, AssetAnalysis, FullAnalysis, GroupResult, MarketSnapshot } from '@/lib/types';
 
 export const maxDuration = 60;
@@ -39,6 +40,8 @@ export async function GET(request: NextRequest) {
   };
 
   try {
+    resetCostAccumulator();
+
     // Fetch all market data in parallel
     const markets = await fetchAllMarkets();
 
@@ -54,6 +57,7 @@ export async function GET(request: NextRequest) {
       nasdaq,
       btc,
       analyzedAt: new Date().toISOString(),
+      cost: getAccumulatedCost(),
     };
 
     await saveAnalysis(analysis);

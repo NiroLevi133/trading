@@ -324,6 +324,98 @@ function Skeleton() {
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
+// ── Cost Button ───────────────────────────────────────────────────────────────
+
+function CostButton({ lastCost }: { lastCost?: number }) {
+  const [total, setTotal] = useState<{ totalUsd: number; count: number } | null>(null);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/costs').then(r => r.ok ? r.json() : null).then(d => d && setTotal(d));
+  }, []);
+
+  const fmt = (n: number) => n < 0.01 ? `$${(n * 100).toFixed(3)}¢` : `$${n.toFixed(4)}`;
+
+  return (
+    <>
+      <button
+        onClick={() => setOpen(v => !v)}
+        title="עלות ניתוחים"
+        style={{
+          background: 'rgba(16,185,129,0.1)',
+          border: '1px solid rgba(16,185,129,0.3)',
+          borderRadius: 8, padding: '6px 10px',
+          color: '#34d399', fontSize: 12, cursor: 'pointer',
+          display: 'flex', alignItems: 'center', gap: 5,
+        }}
+      >
+        💰 {total ? fmt(total.totalUsd) : '...'}
+      </button>
+
+      {open && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 100, padding: 16,
+        }} onClick={() => setOpen(false)}>
+          <div style={{
+            background: '#12121a', border: '1px solid #1e1e2e',
+            borderRadius: 16, padding: 24, width: '100%', maxWidth: 360,
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#e2e8f0', marginBottom: 16 }}>
+              💰 עלות ניתוחים
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{
+                background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.2)',
+                borderRadius: 10, padding: '12px 16px',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              }}>
+                <span style={{ fontSize: 13, color: '#94a3b8' }}>סה&quot;כ עד היום</span>
+                <span style={{ fontSize: 22, fontWeight: 800, color: '#34d399' }}>
+                  {total ? `$${total.totalUsd.toFixed(4)}` : '...'}
+                </span>
+              </div>
+
+              <div style={{
+                display: 'flex', justifyContent: 'space-between',
+                fontSize: 13, color: '#64748b', padding: '0 4px',
+              }}>
+                <span>מספר ניתוחים</span>
+                <span style={{ color: '#94a3b8' }}>{total?.count ?? '...'}</span>
+              </div>
+
+              {lastCost !== undefined && (
+                <div style={{
+                  display: 'flex', justifyContent: 'space-between',
+                  fontSize: 13, color: '#64748b', padding: '0 4px',
+                }}>
+                  <span>ניתוח אחרון</span>
+                  <span style={{ color: '#94a3b8' }}>{fmt(lastCost)}</span>
+                </div>
+              )}
+
+              <div style={{ fontSize: 10, color: '#374151', textAlign: 'center', marginTop: 4 }}>
+                מחירים: Haiku $0.80/1M · Sonnet $3/1M · GPT-4o-mini $0.15/1M · Gemini $0.075/1M
+              </div>
+            </div>
+
+            <button onClick={() => setOpen(false)} style={{
+              marginTop: 16, width: '100%',
+              background: 'transparent', border: '1px solid #1e1e2e',
+              borderRadius: 8, padding: '10px 0',
+              color: '#64748b', fontSize: 13, cursor: 'pointer',
+            }}>
+              סגור
+            </button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 // ── Geopolitical News Section ─────────────────────────────────────────────────
 
 interface NewsData {
@@ -496,6 +588,84 @@ function Stepper({ label, value, min, max, onChange }: {
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
+// ── Symbol Scanner ────────────────────────────────────────────────────────────
+
+function SymbolScanner() {
+  const [symbol, setSymbol] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [done, setDone] = useState('');
+
+  const scan = async () => {
+    const s = symbol.trim().toUpperCase();
+    if (!s) return;
+    setLoading(true);
+    setError('');
+    setDone('');
+    try {
+      const res = await fetch(`/api/stock?symbol=${encodeURIComponent(s)}`);
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error(json.details ?? json.error ?? 'שגיאה בניתוח');
+      }
+      const json = await res.json();
+      setDone(`${json.name} (${json.symbol}) — ${json.signal}`);
+      setSymbol('');
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={{
+      background: '#12121a', border: '1px solid #1e1e2e',
+      borderRadius: 12, padding: 14, marginBottom: 16,
+    }}>
+      <div style={{ fontSize: 12, color: '#64748b', marginBottom: 10 }}>🔎 סריקת מנייה חופשית</div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <input
+          value={symbol}
+          onChange={e => setSymbol(e.target.value.toUpperCase())}
+          onKeyDown={e => e.key === 'Enter' && !loading && scan()}
+          placeholder="TSLA, NVDA, AMZN..."
+          disabled={loading}
+          style={{
+            flex: 1, background: '#0a0a0f', border: '1px solid #1e1e2e',
+            borderRadius: 8, padding: '9px 12px',
+            color: '#e2e8f0', fontSize: 14, outline: 'none',
+            fontFamily: 'monospace',
+          }}
+        />
+        <button
+          onClick={scan}
+          disabled={loading || !symbol.trim()}
+          style={{
+            background: loading ? '#1e1e2e' : 'rgba(99,102,241,0.15)',
+            border: '1px solid rgba(99,102,241,0.4)',
+            borderRadius: 8, padding: '9px 16px',
+            color: loading ? '#374151' : '#818cf8',
+            fontSize: 13, fontWeight: 600,
+            cursor: loading || !symbol.trim() ? 'not-allowed' : 'pointer',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {loading ? 'סורק...' : 'סרוק'}
+        </button>
+      </div>
+      {error && (
+        <div style={{ fontSize: 12, color: '#ef4444', marginTop: 8 }}>{error}</div>
+      )}
+      {done && !error && (
+        <div style={{ fontSize: 12, color: '#22c55e', marginTop: 8 }}>
+          ✓ נשמר: {done} — <a href="/stocks" style={{ color: '#818cf8', textDecoration: 'underline' }}>ראה בדף מניות</a>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Page() {
   const [data, setData] = useState<FullAnalysis | null>(null);
   const [loading, setLoading] = useState(false);
@@ -561,7 +731,18 @@ export default function Page() {
           <div style={{ fontSize: 18, fontWeight: 800, color: '#e2e8f0' }}>מנתח מסחר</div>
           <div style={{ fontSize: 11, color: '#64748b' }}>נחיל AI · 3 קבוצות · {totalAgents} סוכנים</div>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <CostButton lastCost={data?.cost?.totalUsd} />
+          <Link href="/stocks" style={{
+            background: 'rgba(245,158,11,0.1)',
+            border: '1px solid rgba(245,158,11,0.3)',
+            borderRadius: 10, padding: '10px 14px',
+            color: '#f59e0b', fontSize: 13, fontWeight: 600,
+            textDecoration: 'none', minHeight: 44,
+            display: 'flex', alignItems: 'center',
+          }}>
+            מניות
+          </Link>
           <Link href="/summaries" style={{
             background: 'rgba(15,118,110,0.15)',
             border: '1px solid rgba(20,184,166,0.3)',
@@ -591,6 +772,9 @@ export default function Page() {
 
       {/* Geopolitical news */}
       <NewsSection />
+
+      {/* Symbol scanner */}
+      <SymbolScanner />
 
       {/* Agent settings */}
       <div style={{ marginBottom: 16 }}>

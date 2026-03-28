@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { AssetAnalysis, GroupResult, MarketSnapshot, PriceTarget, Signal } from '@/lib/types';
+import { trackUsage } from '@/lib/pricing';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -40,6 +41,7 @@ ${groupSummary}
     messages: [{ role: 'user', content: prompt }],
   });
 
+  trackUsage('claude-sonnet-4-6', message.usage.input_tokens, message.usage.output_tokens);
   const text = message.content[0].type === 'text' ? message.content[0].text : '';
 
   const fallbackTarget = (price: number): PriceTarget => ({

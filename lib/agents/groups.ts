@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { AgentResult, DataSummary, MarketSnapshot, Signal } from '@/lib/types';
+import { trackUsage } from '@/lib/pricing';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -127,6 +128,7 @@ export async function runDataSummary(
       system,
       messages: [{ role: 'user', content: user }],
     });
+    trackUsage('claude-haiku-4-5', message.usage.input_tokens, message.usage.output_tokens);
     return message.content[0].type === 'text' ? message.content[0].text : '';
   }));
 
@@ -201,6 +203,8 @@ ${JSON_INSTRUCTION}`,
 
   return Promise.all(prompts.slice(0, Math.min(count, prompts.length)).map(async (prompt) => {
     const result = await model.generateContent(prompt);
+    const meta = result.response.usageMetadata;
+    if (meta) trackUsage('gemini-2.5-flash-lite', meta.promptTokenCount ?? 0, meta.candidatesTokenCount ?? 0);
     return parseSignalResponse(result.response.text());
   }));
 }
@@ -278,6 +282,7 @@ ${JSON_INSTRUCTION}`,
       temperature: 0.3,
       max_tokens: 150,
     });
+    if (response.usage) trackUsage('gpt-4o-mini', response.usage.prompt_tokens, response.usage.completion_tokens);
     return parseSignalResponse(response.choices[0].message.content ?? '');
   }));
 }
@@ -352,6 +357,7 @@ ${JSON_INSTRUCTION}`,
       system,
       messages: [{ role: 'user', content: user }],
     });
+    trackUsage('claude-haiku-4-5', message.usage.input_tokens, message.usage.output_tokens);
     const text = message.content[0].type === 'text' ? message.content[0].text : '';
     return parseSignalResponse(text);
   }));

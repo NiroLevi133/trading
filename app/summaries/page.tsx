@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { FullAnalysis, AssetAnalysis } from '@/lib/types';
 import { MarketIntelResult } from '@/lib/agents/webSearch';
 
-const ASSETS: { key: keyof Omit<FullAnalysis, 'analyzedAt'>; emoji: string }[] = [
+const ASSETS: { key: keyof Omit<FullAnalysis, 'analyzedAt' | 'cost'>; emoji: string }[] = [
   { key: 'aapl',   emoji: '🍎' },
   { key: 'sp500',  emoji: '📈' },
   { key: 'nasdaq', emoji: '💻' },
@@ -93,10 +93,10 @@ function MarketIntelSection() {
 
   useEffect(() => { fetchIntel(); }, [fetchIntel]);
 
-  const agents = intel ? [
-    { icon: '🔍', label: 'איסוף מידע גולמי',   color: '#60a5fa', text: intel.rawIntelligence },
-    { icon: '🧠', label: 'ניתוח סנטימנט שוק',  color: '#a78bfa', text: intel.sentiment },
-    { icon: '⚡', label: 'זיהוי אותות חשובים', color: '#34d399', text: intel.signals },
+  const markets = intel ? [
+    { flag: '🇮🇱', label: 'שוק ישראלי',          color: '#60a5fa', borderColor: 'rgba(96,165,250,0.2)',  text: intel.israeli },
+    { flag: '🇺🇸', label: 'שוק אמריקאי',         color: '#a78bfa', borderColor: 'rgba(167,139,250,0.2)', text: intel.american },
+    { flag: '🔗',  label: 'קשרים ואותות חריגים', color: '#34d399', borderColor: 'rgba(52,211,153,0.2)',  text: intel.crossMarket },
   ] : [];
 
   return (
@@ -107,7 +107,7 @@ function MarketIntelSection() {
           <div style={{ fontSize: 15, fontWeight: 700, color: '#e2e8f0' }}>
             🌐 סיכום שוקי הון — חיפוש אינטרנט
           </div>
-          <div style={{ fontSize: 11, color: '#64748b' }}>שוק ישראלי + שוק אמריקאי · 3 סוכני AI</div>
+          <div style={{ fontSize: 11, color: '#64748b' }}>🇮🇱 ישראלי · 🇺🇸 אמריקאי · 3 סוכני AI</div>
         </div>
         <button
           onClick={fetchIntel}
@@ -126,7 +126,7 @@ function MarketIntelSection() {
 
       {loading && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {[120, 120, 120].map((h, i) => (
+          {[140, 140, 100].map((h, i) => (
             <div key={i} style={{
               height: h, background: '#12121a', borderRadius: 12,
               animation: 'pulse 1.5s ease-in-out infinite', opacity: 0.6,
@@ -145,16 +145,16 @@ function MarketIntelSection() {
         </div>
       )}
 
-      {agents.map(({ icon, label, color, text }) => (
+      {markets.map(({ flag, label, color, borderColor, text }) => (
         <div key={label} style={{
-          background: '#12121a', border: '1px solid #1e1e2e',
+          background: '#12121a', border: `1px solid ${borderColor}`,
           borderRadius: 14, padding: 18,
         }}>
           <div style={{
             display: 'flex', alignItems: 'center', gap: 8,
             marginBottom: 12,
           }}>
-            <span style={{ fontSize: 16 }}>{icon}</span>
+            <span style={{ fontSize: 15 }}>{flag}</span>
             <span style={{ fontSize: 13, fontWeight: 700, color }}>{label}</span>
             {intel?.cached && (
               <span style={{ fontSize: 10, color: '#374151', marginRight: 'auto' }}>

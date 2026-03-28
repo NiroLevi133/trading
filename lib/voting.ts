@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { AgentResult, GroupResult, Signal } from '@/lib/types';
+import { trackUsage } from '@/lib/pricing';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -32,6 +33,7 @@ ${agentSummary}
     messages: [{ role: 'user', content: prompt }],
   });
 
+  trackUsage('claude-haiku-4-5', message.usage.input_tokens, message.usage.output_tokens);
   const text = message.content[0].type === 'text' ? message.content[0].text : '';
 
   try {

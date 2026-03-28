@@ -32,7 +32,10 @@ async function fetchYahoo(symbol: string): Promise<MarketSnapshot> {
   const prevClose = meta.previousClose ?? meta.chartPreviousClose;
   const changePercent = prevClose ? ((price - prevClose) / prevClose) * 100 : 0;
 
-  const name = SYMBOLS[symbol as keyof typeof SYMBOLS]?.name ?? symbol;
+  const name = SYMBOLS[symbol as keyof typeof SYMBOLS]?.name
+    ?? meta.shortName
+    ?? meta.longName
+    ?? symbol;
 
   return {
     symbol,
@@ -46,6 +49,10 @@ async function fetchYahoo(symbol: string): Promise<MarketSnapshot> {
     rsi: calcRSI(closes),
     macdSignal: calcMACD(closes),
   };
+}
+
+export async function fetchSingleMarket(symbol: string): Promise<MarketSnapshot> {
+  return fetchYahoo(symbol.toUpperCase());
 }
 
 export async function fetchAllMarkets(): Promise<{
