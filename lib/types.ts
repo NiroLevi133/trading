@@ -26,6 +26,10 @@ export interface MarketSnapshot {
   sma50: number;
   rsi: number;
   macdSignal: 'bullish' | 'bearish' | 'neutral';
+  marketState?: 'REGULAR' | 'PRE' | 'POST' | 'CLOSED' | 'PREPRE';
+  preMarketPrice?: number;
+  postMarketPrice?: number;
+  priceDataAt?: string; // timestamp of last price update
 }
 
 export interface PriceTarget {

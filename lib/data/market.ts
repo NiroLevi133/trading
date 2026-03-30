@@ -1,4 +1,5 @@
 import { MarketSnapshot } from '@/lib/types';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { calcSMA, calcRSI, calcMACD } from '@/lib/indicators';
 
 const SYMBOLS = {
@@ -28,7 +29,17 @@ async function fetchYahoo(symbol: string): Promise<MarketSnapshot> {
   const quotes = result.indicators.quote[0];
   const closes: number[] = quotes.close.filter(Boolean);
 
-  const price = meta.regularMarketPrice;
+  // מחיר עדכני — pre/post market אם השוק סגור
+  const marketState: string = meta.marketState ?? 'CLOSED';
+  const regularPrice: number = meta.regularMarketPrice;
+  const preMarketPrice: number | undefined = meta.preMarketPrice ?? undefined;
+  const postMarketPrice: number | undefined = meta.postMarketPrice ?? undefined;
+
+  // הצג את המחיר הכי עדכני הקיים
+  const price = marketState === 'PRE'  && preMarketPrice  ? preMarketPrice
+              : marketState === 'POST' && postMarketPrice ? postMarketPrice
+              : regularPrice;
+
   const prevClose = meta.previousClose ?? meta.chartPreviousClose;
   const changePercent = prevClose ? ((price - prevClose) / prevClose) * 100 : 0;
 
@@ -48,6 +59,10 @@ async function fetchYahoo(symbol: string): Promise<MarketSnapshot> {
     sma50: calcSMA(closes, 50),
     rsi: calcRSI(closes),
     macdSignal: calcMACD(closes),
+    marketState: marketState as MarketSnapshot['marketState'],
+    preMarketPrice,
+    postMarketPrice,
+    priceDataAt: new Date(meta.regularMarketTime * 1000).toISOString(),
   };
 }
 
